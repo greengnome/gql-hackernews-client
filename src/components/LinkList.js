@@ -4,7 +4,7 @@ import gql from 'graphql-tag';
 
 import Link from './Link';
 
-const FEED_QUERY = gql`
+export const FEED_QUERY = gql`
   {
     feed {
       links {
@@ -12,29 +12,49 @@ const FEED_QUERY = gql`
         createdAt
         url
         description
+        postedBy {
+          id
+          name
+        }
+        votes {
+          id
+          user {
+            id
+          }
+        }
       }
     }
   }`;
 
+const LinkList = () => {
 
+  const _updateCacheAfterVote = (store, createVote, linkId) => {
+    const data = store.readQuery({ query: FEED_QUERY })
 
-const LinkList = () => (
-  <Query query={FEED_QUERY}>
-    {
-      ({ loading, error, data }) => {
-        if (loading) return <div style={{ margin: 'auto', color: '#ccc' }}>Fetching...</div>
-        if (error) return <div style={{ margin: 'auto', color: 'red' }}>Error :(</div>
+    const votedLink = data.feed.links.find(link => link.id === linkId)
+    votedLink.votes = createVote.link.votes
 
-        const linksToRender = data.feed.links
+    store.writeQuery({ query: FEED_QUERY, data })
+  }
 
-        return (
-          <div>
-            {linksToRender.map(link => <Link key={link.id} link={link} />)}
-          </div>
-        )
+  return (
+    <Query query={FEED_QUERY}>
+      {
+        ({ loading, error, data }) => {
+          if (loading) return <div style={{ margin: 'auto', color: '#ccc' }}>Fetching...</div>
+          if (error) return <div style={{ margin: 'auto', color: 'red' }}>Error :(</div>
+
+          const linksToRender = data.feed.links
+
+          return (
+            <div>
+              {linksToRender.map((link, index) => <Link key={link.id} link={link} index={index} updateStoreAfterVote={_updateCacheAfterVote}/>)}
+            </div>
+          )
+        }
       }
-    }
-  </Query>
-)
+    </Query>
+  )
+}
 
 export default LinkList
